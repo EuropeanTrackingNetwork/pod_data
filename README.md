@@ -1,2 +1,9 @@
 # pod_data
-R scripts to download long-term POD datasets 
+Download long-term POD datasets using the R package _lwdataexplorer_.
+
+Steps include: 
+1. Download and check data per year. Subset data to certain projects or stations and quality control each field.
+2. Standardize minute-resolution datasets for publication to IMIS.
+3. Aggregation of data into hourly resolution.
+4. Conversion of hourly resolution datasets into DwC-A and generate OBIS files.
+5. Quality control final OBIS data. 
