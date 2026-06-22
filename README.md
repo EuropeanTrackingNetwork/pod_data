@@ -1,5 +1,5 @@
 # pod_data
-Download long-term POD datasets using the R package _lwdataexplorer_.
+Download long-term POD datasets using the [R package _lwdataexplorer_](https://github.com/lifewatch/lwdataexplorer). Minute data is downloaded every ~10 days to avoid server-related issues. 
 
 Steps include: 
 1. Download and check data per year. Subset data to certain projects or stations and quality control each field.
