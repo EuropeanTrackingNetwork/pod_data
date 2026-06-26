@@ -1,0 +1,9 @@
+userid=""
+pw=""
+GITHUB_PAT=""
+
+ODBC_USER=""
+ODBC_PSWD=""
+ETN_SERVER="dppg.vliz.be"
+ETN_ODBC_DSN="ETN"
+ETN_DBNAME="ETN"
