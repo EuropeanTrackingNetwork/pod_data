@@ -1,7 +1,9 @@
 # pod_data
 Download long-term POD datasets using the [R package _lwdataexplorer_](https://github.com/lifewatch/lwdataexplorer). Minute data is downloaded every ~10 days to avoid server-related issues. 
 
-To access lwdataexplorer datasets, your ETN credentials (userid and password) must be filled in a .Renviron file. These credentials can be found when you log into the [ETN Data Platform](https://www.lifewatch.be/etn/). In the top right of the platform, click your name and choose "ETN R access." See your credentials to connect to the ETN database. See the full tutorial to configure your credentials: https://inbo.github.io/etn/articles/authentication.html
+To access lwdataexplorer datasets, your ETN credentials (userid and password) must be filled in a .Renviron file. These credentials can be found when you log into the [ETN Data Platform](https://www.lifewatch.be/etn/). In the top right of the platform, click your name and choose "ETN R access." See your credentials to connect to the ETN database. 
+
+Full tutorial to configure your credentials: https://inbo.github.io/etn/articles/authentication.html
 
 Steps include: 
 1. Download and check data per year. Subset data to certain projects or stations and quality control each field.
