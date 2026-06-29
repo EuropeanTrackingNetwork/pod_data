@@ -5,7 +5,7 @@ To access lwdataexplorer datasets, your ETN credentials (userid and password) mu
 
 Full tutorial to configure your credentials: https://inbo.github.io/etn/articles/authentication.html
 
-Steps include: 
+The script is divided into the following steps: 
 1. Download and check data per year. Subset data to certain projects or stations and quality control each field.
 2. Standardize minute-resolution datasets for publication to IMIS.
 3. Aggregation of data into hourly resolution.
