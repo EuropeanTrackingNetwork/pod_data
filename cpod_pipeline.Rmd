@@ -19,18 +19,38 @@ library(stringr)
 library(here)
 ```
 
+Set inputs in this chunk
+```{r} 
+year = "2021"
+dataset_name = "LifeWatch" #assign a name to your dataset
+start_date = as.Date(paste0(year, "-12-01"))
+stop_date = as.Date(paste0(year,"-12-31"))
+species = "NBHF"
+project_name = "Lifewatch"
+stations_remove = "AP|arms" # remove stations with "AP" or "arms" within the string
+quality = c(3,2) # only keep High and Moderate quality clicks
+IMIS_dataset_ID = 7858 # fill in IMIS dataset ID if empty
+year = "2021-2023" # year range of datasets to be combined (project duration)
+```
+
 ##### 1. DOWNLOAD AND CHECK DATA PER YEAR
 Hi and Mod data downloaded separately.
 ```{r download data, echo=FALSE}
+
+# Create dataset_name folders 
+folders <- list(c("minute_datasets", dataset_name), c("hourly_datasets", dataset_name),c("RData", dataset_name)
+)
+
+for (folder in folders) {
+  folder_path <- do.call(here, as.list(folder))
+  if (!dir.exists(folder_path)) {dir.create(folder_path, recursive = TRUE)}
+}
+
 # a. getCpodData parameters
 
-year = "2021"
-dataset_name = "" #assign a name to your dataset
-
-start_date = as.Date(paste0(year, "-09-08"))
-stop_date = as.Date(paste0(year,"-12-31"))
-# Query data every 10 days 
-date_interval = seq(start_date, length.out = 38, by="10 days") # 38 iterations of 10 day periods
+# Query data every 10 days, with final date exactly equal to stop_date
+date_interval = seq(start_date, stop_date, by="10 days")
+if (tail(date_interval, 1) != stop_date) {date_interval <- c(date_interval, stop_date)}
 
 cpod_dataset = data.frame()
 
@@ -40,28 +60,24 @@ for (i in 1:(length(date_interval)-1)){
   cpod_dataset = dplyr::bind_rows(cpod_dataset,cpodData)
   cpodData = getCpodData(startdate= as.character(date_interval[i]), stopdate= as.character(date_interval[i+1]), processing='Raw', quality=c("Mod"), by="1 min", usr = "userid", pwd = "pw")
   cpod_dataset = dplyr::bind_rows(cpod_dataset,cpodData)
-  #cpodData = getCpodData(startdate= as.character(date_interval[i]), stopdate= as.character(date_interval[i+1]), processing='Raw', quality=c("Lo"), by="1 min", usr = "userid", pwd = "pw")
-  #cpod_dataset = dplyr::bind_rows(cpod_dataset,cpodData)
+  cpodData = getCpodData(startdate= as.character(date_interval[i]), stopdate= as.character(date_interval[i+1]), processing='Raw', quality=c("Lo"), by="1 min", usr = "userid", pwd = "pw")
+  cpod_dataset = dplyr::bind_rows(cpod_dataset,cpodData)
   save(cpod_dataset, file = here("RData",
                                     paste0("cpod_dataset_",year, dataset_name, ".RData")))
   print(i)
 }
 
-cpod_dataset <- cpod_dataset %>% distinct() %>% filter(as.Date(time) <= stop_date, species == "NBHF")
+#Filter to species
+cpod_dataset <- cpod_dataset %>% distinct() %>% filter(species == species)
 
 #check & remove duplicates
 cpod_dataset <- distinct(cpod_dataset)
-save(cpod_dataset, file = here("RData",
+save(cpod_dataset, file = here("RData", dataset_name,
                                     paste0("cpod_dataset_",year, dataset_name, ".RData")))
 ```
 
 
 ```{r check data}
-dataset_name = ""
-year = "2022" 
-file_path <- here("RData",
-                      paste0("cpod_dataset_",year, dataset_name, ".RData"))
-load(file_path)
 
 # a. make all column names lowercase
 names(cpod_dataset) <- tolower(names(cpod_dataset))
@@ -72,12 +88,8 @@ data_after_valid_date = cpod_dataset %>% filter(time > valid_data_until_datetime
 cpod_dataset = cpod_dataset %>% filter(time < valid_data_until_datetime)
 
 # c. Subset on project LifeWatch (delete other projects and filter to permanent stations and NBHF species)
-#cpod_dataset<-subset(cpod_dataset, cpod_dataset$projectname=="Lifewatch")
-#cpod_dataset <- cpod_dataset %>% filter(!str_detect(station, regex("AP|arms", ignore_case = TRUE)))
-
-# c. Subset on Apelafico stations
-cpod_dataset <- cpod_dataset %>% filter(str_detect(station, regex("AP")), quality %in% c(3,2)) 
-cpod_dataset$species <- recode_factor(cpod_dataset$species,"NBHF"  = "Harbour porpoise")
+cpod_dataset<-subset(cpod_dataset, cpod_dataset$projectname==project_name)
+cpod_dataset <- cpod_dataset %>% filter(!str_detect(station, regex(stations_remove, ignore_case = TRUE)), quality %in% quality) 
 
 # d. delete rows with recorded = 0
 cpod_dataset = cpod_dataset[!cpod_dataset$recorded==0,]
@@ -93,8 +105,6 @@ if (any(cpod_dataset %>%
 
 ```{r imis}
 ##### 2. FORMAT DATA IN IMIS
-
-dataset_name = "_apelafico"
 
 # rename columns
 cpod_dataset <- cpod_dataset %>% rename("Deployment_fk" = "deployment_fk", "Datetime..UTC." = "time", "Species" = "species", "Milliseconds" = "milliseconds", "Number_clicks_filtered" = "number_clicks_filtered", "Number_clicks_total" = "number_clicks_total", "Lost_minutes" = "lost_minutes", "Recorded" = "recorded", "Dpm" = "dpm", "Angle" = "angle", "Quality" = "quality", "Projectname" = "projectname", "Projectcode" = "projectcode", "IMIS_dataset_ID" = "imis_dataset_id", "Station"="station", "Latitude"="latitude", "Longitude"="longitude", "Mooring_type"="mooring_type", "Receiver"="receiver", "Deploy_date_time"="deploy_date_time", "Recover_date_time"="recover_date_time", "Valid_data_until_datetime"="valid_data_until_datetime", "Temperature_max"="temperature_max", "Temperature_min"="temperature_min" )
@@ -166,16 +176,16 @@ cpod_dataset$Datetime..UTC. <- format(cpod_dataset$Datetime..UTC., "%Y-%m-%d %H:
 if(any(duplicated(names(cpod_dataset))) == TRUE | nrow(data_after_valid_date) > 0 | any(cpod_dataset$Deploy_date_time > cpod_dataset$Recover_date_time, na.rm=TRUE) == TRUE) { #field names must be unique AND there must be no NAs AND there must be no data after the valid_datetime
   print("Final checks not satisfied. IMIS file cannot be exported.")
 } else {
-  write.csv(cpod_dataset,here("minute_datasets", "apelafico", 
+  write.csv(cpod_dataset,here("minute_datasets", dataset_name, 
                                 paste0("Cetacean passive acoustic network ",year, dataset_name,".csv")), row.names = FALSE) 
 }
 
 ```
+
+
+Optional step: combine minute datasets for project-specific data
 ```{r}
-
-# Optional step: combine minute datasets for project-specific data
-
-project_dir = here("minute_datasets", "apelafico")
+project_dir = here("minute_datasets", dataset_name)
 
 csv_files <- list.files(path = project_dir, pattern = "\\.csv$", full.names = TRUE)
 
@@ -192,18 +202,14 @@ NAs = project_data[rowSums(is.na(project_data)) > 0,]
 test = NAs %>% filter(is.na(Deployment_fk))
 
 # if recover_date_time is NA, replace with valid_date_time
-deployments_to_fix <- c(13364, 13366)  # replace with your deployment numbers
-
 project_data <- project_data %>%
-  mutate(Recover_date_time = if_else(Deployment_fk %in% deployments_to_fix,
+  mutate(Recover_date_time = if_else(is.na(Recover_date_time),
       Valid_data_until_datetime, Recover_date_time))
 
 # fill in IMIS dataset ID 
-project_data$IMIS_dataset_ID = 7858
+project_data$IMIS_dataset_ID = IMIS_dataset_ID
 
-# export dataset
-year = "2021-2023"
-write.csv(project_data,here("minute_datasets", "apelafico", 
+write.csv(project_data,here("minute_datasets", dataset_name, 
                                 paste0("Cetacean passive acoustic network ",year, dataset_name,".csv")), row.names = FALSE) 
 ```
 
@@ -211,10 +217,10 @@ write.csv(project_data,here("minute_datasets", "apelafico",
 ```{r hourly}
 #### 3. AGGREGATION OF DATA INTO HOURLY RESOLUTION
 
-#year = "2021"
+year = "2021"
 
 #load minute data
-#cpod_dataset <- read_csv(paste0(wd,"exports_2025/imis/minute/Cetacean passive acoustic network ",year,".csv"))
+cpod_dataset <- read_csv(paste0(wd,"exports_2025/imis/minute/Cetacean passive acoustic network ",year,".csv"))
 
 # a. set datetime utc per hour
 
