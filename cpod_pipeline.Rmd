@@ -7,8 +7,9 @@ output: html_document
 
 Installation of lwdataexplorer via github through package "remotes". ETN credentials must be set in your .Renviron file. 
 ```{r install lwdataexplorer, echo=FALSE}
-library(remotes)
-remotes::install_github("lifewatch/lwdataexplorer")
+if (!requireNamespace("lwdataexplorer", quietly = TRUE)) {
+  remotes::install_github("lifewatch/lwdataexplorer")
+}
 ```
 
 
@@ -21,20 +22,20 @@ library(here)
 
 Set inputs in this chunk
 ```{r} 
-year = "2021"
+year = "2025"
 dataset_name = "LifeWatch" #assign a name to your dataset
-start_date = as.Date(paste0(year, "-12-01"))
+start_date = as.Date(paste0(year, "-01-01"))
 stop_date = as.Date(paste0(year,"-12-31"))
 species = "NBHF"
 project_name = "Lifewatch"
 stations_remove = "AP|arms" # remove stations with "AP" or "arms" within the string
 quality = c(3,2) # only keep High and Moderate quality clicks
-IMIS_dataset_ID = 7858 # fill in IMIS dataset ID if empty
-year = "2021-2023" # year range of datasets to be combined (project duration)
+#IMIS_dataset_ID =  # fill in IMIS dataset ID if empty
+#year_range = "2021-2023" # year range of datasets to be combined (project duration)
 ```
 
 ##### 1. DOWNLOAD AND CHECK DATA PER YEAR
-Hi and Mod data downloaded separately.
+Hi, Mod and Lo quality clicks downloaded separately.
 ```{r download data, echo=FALSE}
 
 # Create dataset_name folders 
@@ -62,13 +63,13 @@ for (i in 1:(length(date_interval)-1)){
   cpod_dataset = dplyr::bind_rows(cpod_dataset,cpodData)
   cpodData = getCpodData(startdate= as.character(date_interval[i]), stopdate= as.character(date_interval[i+1]), processing='Raw', quality=c("Lo"), by="1 min", usr = "userid", pwd = "pw")
   cpod_dataset = dplyr::bind_rows(cpod_dataset,cpodData)
-  save(cpod_dataset, file = here("RData",
+  save(cpod_dataset, file = here("RData", dataset_name,
                                     paste0("cpod_dataset_",year, dataset_name, ".RData")))
   print(i)
 }
 
 #Filter to species
-cpod_dataset <- cpod_dataset %>% distinct() %>% filter(species == species)
+cpod_dataset <- cpod_dataset %>% distinct() %>% filter(species == species, as.Date(time) <= stop_date)
 
 #check & remove duplicates
 cpod_dataset <- distinct(cpod_dataset)
@@ -84,8 +85,8 @@ names(cpod_dataset) <- tolower(names(cpod_dataset))
 
 # b. check data beyond valid_data_until_datetime
 cpod_dataset = cpod_dataset %>% mutate_at(c("time", "deploy_date_time", "recover_date_time", "valid_data_until_datetime"), ~as.POSIXct(.,tz="UTC", format="%Y-%m-%d %H:%M:%S"))
-data_after_valid_date = cpod_dataset %>% filter(time > valid_data_until_datetime)
 cpod_dataset = cpod_dataset %>% filter(time < valid_data_until_datetime)
+data_after_valid_date = cpod_dataset %>% filter(time > valid_data_until_datetime)
 
 # c. Subset on project LifeWatch (delete other projects and filter to permanent stations and NBHF species)
 cpod_dataset<-subset(cpod_dataset, cpod_dataset$projectname==project_name)
@@ -217,11 +218,6 @@ write.csv(project_data,here("minute_datasets", dataset_name,
 ```{r hourly}
 #### 3. AGGREGATION OF DATA INTO HOURLY RESOLUTION
 
-year = "2021"
-
-#load minute data
-cpod_dataset <- read_csv(paste0(wd,"exports_2025/imis/minute/Cetacean passive acoustic network ",year,".csv"))
-
 # a. set datetime utc per hour
 
 cpod_dataset$min<-as.POSIXct(cpod_dataset$`Datetime..UTC.`, format = "%Y-%m-%d  %H:%M", tz="UTC")
@@ -278,17 +274,20 @@ colSums(is.na(cpod_dataset))
 if (max(cpod_dataset$Recorded) > 60 | max(cpod_dataset$sumDpm) > 60 | max(cpod_dataset$Lost_minutes) > 60) {
   print("Final checks not satisfied. File cannot be exported.")
 } else {
-  write.csv(cpod_dataset, here("hourly_datasets", paste0("Cetacean passive acoustic network ",year," hourly.csv")), row.names = FALSE) 
+  write.csv(cpod_dataset, here("hourly_datasets",dataset_name, paste0("Cetacean passive acoustic network ",year," hourly.csv")), row.names = FALSE) 
 }
 ```
 
 ```{r dwca}
 ##### 4. CONVERSION TO DWC-A by Jonas Mortelmans - hourly resolution
 
+#Set year range to archive
+year_range <- 2014:2025
+
 #run this block if converting dataset of all years into one Darwin Core#
 cpod_list <- list()
-# Loop through the years 2014 to 2024
-for (year in 2014:2024) {
+# Loop through the years
+for (year in year_range) {
   # Construct the file path for each year
   file_path <- sprintf("exports_2025/imis/hourly/Cetacean passive acoustic network %d hourly.csv", year)
   
@@ -297,9 +296,9 @@ for (year in 2014:2024) {
   cpod_list[[as.character(year)]] <- cpod_data
 }
 
-save(cpod_list, file = paste0("RData/cpod_list_2014_2024.RData"))
+save(cpod_list, file = paste0("RData/cpod_list_", year_range, ".RData"))
 #Load saved data
-file_path <- paste0("RData/cpod_list_2014_2024.RData")
+file_path <- paste0("RData/cpod_list_", year_range, ".RData")
 load(paste0(wd,file_path))
 
 cpod_dataset <- bind_rows(cpod_list)
@@ -445,7 +444,7 @@ event[is.na(event)] <- ""
 if (any(colSums(is.na(event))) == TRUE | any(duplicated(names(event))) == TRUE) { #field names must be unique AND there must be no NAs
   print("Final checks not satisfied. Event file cannot be exported.")
 } else {
-  write.csv(event,paste0(wd, "exports_2025/ipt/obisevent.csv"), row.names = FALSE) #first file uploaded in IPT
+  write.csv(event,here("dwca",year, paste0("obisevent.csv")), row.names = FALSE) #first file uploaded in IPT
 }
 
 
@@ -467,13 +466,12 @@ occurrence$scientificNameID <- "urn:lsid:marinespecies.org:taxname:137117"
 if (any(colSums(is.na(occurrence))) == TRUE | any(duplicated(names(occurrence))) == TRUE) { #field names must be unique AND there must be no NAs
   print("Final checks not satisfied. Occurrence file cannot be exported.")
 } else {
-  write.csv(occurrence,paste0(wd, "exports_2025/ipt/obisoccurrence.csv"), row.names = FALSE) #second file uploaded in IPT
+  write.csv(occurrence,here("dwca",year, paste0("obisoccurrence.csv")), row.names = FALSE) #second file uploaded in IPT
 }
 
 
 # h. create extensions file
 
-#names(cpod_dataset)[names(cpod_dataset) == 'eventRemarks'] <- 'measurementsRemarks'
 cpod_dataset$measurementType<-''
 cpod_dataset$measurementTypeID<-''
 cpod_dataset$measurementValueID<-''
@@ -489,25 +487,29 @@ emofRecorded <-emof
 emofDPM <-emof
 emofNumberClicksFiltered <-emof
 emofNumberClicksTotal <-emof
-#emofMeasurementMethod <- emof
+#emofMeasurementMethod <- emof # ommited for memory sake 
 
 #emof recorded
 emofRecorded$measurementType <- 'Recorded minutes'
+emofRecorded$measurementTypeID <- 'https://vocab.nerc.ac.uk/collection/P01/current/AZDRZZ01/'
 emofRecorded$measurementValue <- emofRecorded$Recorded
 emofRecorded$measurementUnit <- 'minute'
 
 #emof DPM
 emofDPM$measurementType <- 'sum of Detection Positive Minutes'
+emofDPM$measurementTypeID <- 'https://vocab.nerc.ac.uk/collection/P01/current/CETA0003/'
 emofDPM$measurementValue <- emofDPM$sumDpm
 emofDPM$measurementUnit <- 'minute' 
 
 #emof Number Clicks Filtered
 emofNumberClicksFiltered$measurementType <- "Number of filtered clicks"
+emofNumberClicksFiltered$measurementTypeID <- 'https://vocab.nerc.ac.uk/collection/P01/current/CETA0002/'
 emofNumberClicksFiltered$measurementValue <- emofNumberClicksFiltered$Number_clicks_filtered
 emofNumberClicksFiltered$measurementUnit <- 'clicks'
 
 #emof Number Clicks Total
 emofNumberClicksTotal$measurementType <- 'Total number of clicks'
+emofNumberClicksTotal$measurementTypeID <- 'https://vocab.nerc.ac.uk/collection/P01/current/CETA0001/'
 emofNumberClicksTotal$measurementValue <- emofNumberClicksTotal$Number_clicks_total
 emofNumberClicksTotal$measurementUnit <- 'clicks'
 
@@ -521,7 +523,7 @@ emof <- subset(emof, select = -c(Receiver, Recorded, sumDpm, Number_clicks_filte
 # add parentEventID
 parentEventID_rows <- data.frame(
   eventID  = c("01_CPOD", "02_FPOD"),
-  measurementTypeID = c('http://vocab.nerc.ac.uk/collection/P01/current/NMSPINST/',''),
+  measurementTypeID = 'http://vocab.nerc.ac.uk/collection/P01/current/NMSPINST/',
   measurementType   = 'Name of sampling instrument', 
   measurementValue = c("Chelonia C-POD porpoise detector", "Chelonia F-POD porpoise detector"),
   measurementValueID = c('http://vocab.nerc.ac.uk/collection/L22/current/TOOL1473/',''),
@@ -538,7 +540,7 @@ emof[is.na(emof)] <- ""
 if (any(colSums(is.na(emof))) == TRUE | any(duplicated(names(emof))) == TRUE) { #field names must be unique AND there must be no NAs
   print("Final checks not satisfied. Occurrence file cannot be exported.")
 } else {
-  write.csv(emof,paste0(wd, "exports_2025/ipt/obisemof.csv"), row.names = FALSE) #final file uploaded in IPT
+  write.csv(emof,here("dwca",year, paste0("obisemof.csv")), row.names = FALSE) #final file uploaded in IPT
 }
 
 ```
