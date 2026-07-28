@@ -281,25 +281,27 @@ if (max(cpod_dataset$Recorded) > 60 | max(cpod_dataset$sumDpm) > 60 | max(cpod_d
 ```{r dwca}
 ##### 4. CONVERSION TO DWC-A by Jonas Mortelmans - hourly resolution
 
+#INPUTS
 #Set year range to archive
 year_range <- 2014:2025
+#Last timestop of FPOD
+lastdate_FPOD <- 
+
+#-----------------------------------------------------------------------
 
 #run this block if converting dataset of all years into one Darwin Core#
 cpod_list <- list()
 # Loop through the years
 for (year in year_range) {
   # Construct the file path for each year
-  file_path <- sprintf("exports_2025/imis/hourly/Cetacean passive acoustic network %d hourly.csv", year)
+  file_path <- sprintf(here("hourly_datasets", dataset_name, "Cetacean passive acoustic network %d hourly.csv"), year)
   
   # Read the CSV file and store it in the list
   cpod_data <- read.csv(file_path, header = TRUE, sep = ',', fileEncoding = "latin1")
   cpod_list[[as.character(year)]] <- cpod_data
 }
 
-save(cpod_list, file = paste0("RData/cpod_list_", year_range, ".RData"))
-#Load saved data
-file_path <- paste0("RData/cpod_list_", year_range, ".RData")
-load(paste0(wd,file_path))
+save(cpod_list, file = here("RData", dataset_name, paste0("cpod_hourly_", min(year_range),"-",max(year_range), ".RData")))
 
 cpod_dataset <- bind_rows(cpod_list)
 
@@ -376,15 +378,15 @@ event <- bind_rows(parentEvent, event_child)
 
 library(raster)
 
-r <- raster(paste0(wd,"metadata/emodnet_mindepth.asc"))
+r <- raster(here("metadata","emodnet_mindepth.asc"))
 bathy_max <- data.frame(coordinates(r))
 bathy_max$depth <- as.vector(r)
 
-r <- raster(paste0(wd,"metadata/emodnet_maxdepth.asc"))
+r <- raster(here("metadata", "emodnet_maxdepth.asc"))
 bathy_min <- data.frame(coordinates(r))
 bathy_min$depth <- as.vector(r)
 
-r <- raster(paste0(wd,"metadata/emodnet_meandepth.asc"))
+r <- raster(here("metadata", "emodnet_meandepth.asc"))
 bathy_mean <- data.frame(coordinates(r))
 bathy_mean$depth <- as.vector(r)
 
@@ -420,18 +422,23 @@ event<-merge(event, depths, by = c('locality', 'decimalLongitude', 'decimalLatit
 # f. final checks before export of event
 
 #check duplicates
-x<-event[duplicated(event$eventID), ]
+duplicates_eventID<-event[duplicated(event$eventID), ]
 #remove duplicates
 event<-event[!duplicated(event$eventID), ]
 
-# add parentEventID
+# add parentEventID and eventdates of FPOD and CPOD
+firstdate_CPOD <- head(event$eventDate[event$parentEventID == "01_CPOD"][order(event$eventDate[event$parentEventID == "01_CPOD"])],1)
+lastdate_CPOD <- tail(event$eventDate[event$parentEventID == "01_CPOD"][order(event$eventDate[event$parentEventID == "01_CPOD"])],1)
+firstdate_FPOD <- head(event$eventDate[event$parentEventID == "02_FPOD"][order(event$eventDate[event$parentEventID == "02_FPOD"])],1)
+lastdate_FPOD <- tail(event$eventDate[event$parentEventID == "02_FPOD"][order(event$eventDate[event$parentEventID == "02_FPOD"])],1)
+
 parentEventID_rows <- data.frame(
   eventID  = c("01_CPOD", "02_FPOD"),
   modified   = c(format(Sys.time(), "%Y-%m-%dT%H:%M:%S"), format(Sys.time(), "%Y-%m-%dT%H:%M:%S")),
   bibliographicCitation = c(paste0("Flanders Marine Institute (VLIZ), Belgium; (", currentYear, "): Permanent Cetacean passive acoustic sensor network in the Belgian Part of the North Sea.")),
   datasetName = "LifeWatch observatory data: permanent Cetacean passive acoustic sensor network in the Belgian Part of the North Sea",
   institutionCode = "Flanders Marine Institute (VLIZ)",
-  eventDate = c("2014-06-23T08:00:00Z/2024-12-31T23:00:00Z", "2022-10-17T09:00:00Z/2024-12-31T23:00:00Z"),
+  eventDate = c(paste0(sub("/.*", "", firstdate_CPOD),"/",sub(".*/", "", lastdate_CPOD)), paste0(sub("/.*", "", firstdate_FPOD),"/",sub(".*/", "", lastdate_FPOD))),
   stringsAsFactors = FALSE
 )
 event <- bind_rows(parentEventID_rows, event)
@@ -548,24 +555,8 @@ if (any(colSums(is.na(emof))) == TRUE | any(duplicated(names(emof))) == TRUE) { 
 ```{r dwca check}
 ##### 5. Check OBIS files generated
 
-# load dwca files
-event <- read_csv(paste0(wd,"exports_2025/ipt/obisevent.csv"))
-occurrence <- read_csv(paste0(wd,"exports_2025/ipt/obisoccurrence.csv"))
-emof <- read_csv(paste0(wd,"exports_2025/ipt/obisemof.csv"))
-
-cpod_dataset <- load(paste0("RData/cpod_list_2014_2024.RData"))
-cpod_dataset <- bind_rows(cpod_list)
-
-
-occurrence %>% filter(occurrenceStatus=="present") %>% nrow()
+table(occurrence$occurrenceStatus)
 unique(event$locality)
-
-file_path <- paste0(wd,"RData/cpod_list_2014_2024.RData")
-load(file_path)
-cpod_dataset <- bind_rows(cpod_list)
-
-NAs = cpod_dataset[rowSums(is.na(cpod_dataset)) > 0,]
-write.csv(NAs,paste0("exports_2025/NAs.csv"), row.names = FALSE)
 
 # filter C-POD and F-POD events
 x <- event %>% filter(parentEventID=="01_CPOD")
