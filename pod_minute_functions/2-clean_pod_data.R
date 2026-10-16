@@ -31,14 +31,6 @@ clean_pod_data <- function(pod_dataset, stop_date, species, project_name, qualit
     
     message(  "Records after project filter: ",  nrow(pod_clean))}
   
-  # 5. STATIONS FILTER
-  # if (!is.null(stations_remove) && stations_remove != "") {  # Only perform the station filter if the user actually supplied a project.
-  #   pod_clean <- pod_clean %>%
-  #     dplyr::filter(!stringr::str_detect(station, stations_remove)) #Keep stations that do not match the removal pattern
-  #   
-  #   message("Stations removed: ", stations_remove)
-  #   message( "Records after station filter: ", nrow(pod_clean))}
-  
   # 5. SPECIES FILTER
   message( "Species requested: ", paste(species, collapse = ", "))
   message("Species present: ", paste(unique(pod_clean$species), collapse = ", "))

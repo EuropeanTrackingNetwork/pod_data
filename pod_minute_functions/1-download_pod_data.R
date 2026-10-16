@@ -35,19 +35,5 @@ download_pod_data <- function(start_date, stop_date, quality, interval_days = 10
       pod_dataset <- dplyr::bind_rows(pod_dataset, podData)
       message("Records downloaded so far: ", nrow(pod_dataset))}}
   
-    # download raw data at 1 min resolution via lwdataexolorer (all at once - doesn't work well, skips data)
-    # podData <- lwdataexplorer::getCpodData(
-    #   startdate = as.character(current_start),
-    #   stopdate = as.character(current_stop),
-    #   processing = "Raw",
-    #   quality = quality,
-    #   by = "1 min",
-    #   usr = usr,
-    #   pwd = pwd)
-    # 
-    # # add downloaded chunk to dataset
-    # pod_dataset <- dplyr::bind_rows(pod_dataset, podData)
-    # message( "Records downloaded so far: ",  nrow(pod_dataset))}
-  
   return(pod_dataset)
 }

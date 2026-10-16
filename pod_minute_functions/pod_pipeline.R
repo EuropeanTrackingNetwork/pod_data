@@ -11,13 +11,13 @@ pod_pipeline <- function(start_date, stop_date, dataset_name, species, project_n
   
   # message("")
   # message("===================================")
-  # message("1. ACESSING PROJECTS YOU HAVE ACCESS TO")
+  # message("1. ACESSING PROJECTS YOU HAVE ACCESS TO") - coming soon
   # message("===================================")
   # 
   # projects <- lwdataexplorer::listEtnProjects()
   # projects
   # View(projects)
-  #  print(projects)
+  # print(projects)
   
   # Download pod data (only specified qualities + all spp, stations and projects)
   message("")

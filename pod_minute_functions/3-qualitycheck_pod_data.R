@@ -18,10 +18,7 @@ check_pod_data <- function(pod_dataset) {
   #   message("WARNING: ", na_count, " missing values found")
   # } else {
   #   message("PASS: no missing values")}
-  # 
-  # # check missing values and say where theyre missing (like missing long vals) - say which deployment and fields is missing data
-  # 
-  
+
   # 2. Check for duplicate rows
   duplicate_rows <- sum(duplicated(pod_dataset))
   if (duplicate_rows > 0) {

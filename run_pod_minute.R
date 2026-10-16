@@ -22,20 +22,20 @@
 
 # Desired start and end date of dataset
 # Assign an excessively large date range if all data is wanted 
-start_date <- "2025-06-15"  #"2020-01-01"     
-stop_date  <- "2025-06-30"  #"2021-12-31"
+start_date <- "2025-06-15"       
+stop_date  <- "2025-06-30"  
 
 # Assign a name to your dataset
-dataset_name <- "Dataset"   #"APELAFICO"      
+dataset_name <- "Dataset"       
 
 # Choose between 'NBHF', 'Sonar', 'Other cet', 'unclassed' (NBHF = Harbour porpoise)
 species <- c('NBHF')               
 
 # ETN project(s) to download. To keep all open and own embargoed projects, input: c('')
-project_name <- c('Lifewatch') #c('Apelafico_acoustics')   
+project_name <- c('Lifewatch')   
 
 # Desired quality of clicks to download: 3 = High, 2 = Mod, 1 = Lo. Multiple qualities can be selected, e.g. c(3, 2)
-quality <- c(1,2)
+quality <- c(1,2,3)
 
 # ================================
 # RUN PIPELINE
@@ -63,18 +63,18 @@ quality <- c(1,2)
 #     - lost minutes (counts rows where the total click count is below 4095)
 #     - temperature continuity (detects jumps of 2°C or more)
 # 4. SAVE dataset as .csv and .RData. Paths:
-#     - ./outputs/csv
-#     - ./outputs/RData
+#     - ./minute_datasets/csv
+#     - ./minute_datasets/RData
 # 5. FORMAT dataset to align with IMIS standards. If:
 #     - Only Lo quality is present in dataset: No formatting possible (IMIS only accepts Mod and Hi data)
 #     - Lo + Hi AND/OR + Mod quality is present in dataset: Lo data is removed, columns are renamed, aggregated to Mod+Hi, 
 #       and formatted to IMIS standard
 #     - Regardless of whether Mod or/and Hi is present (excluding Lo), qualities will be renamed to Mod+Hi (details not necessary)
 # 6. SAVE formatted dataset as a .csv. Paths
-#     - ./outputs/IMIS
+#     - ./minute_datasets/IMIS
 
 # Load required packages and functions
-source("scripts/setup.R")
+source("pod_minute_functions/setup.R")
 
 # Run pipeline
 pod_dataset <- pod_pipeline(start_date = start_date, 
