@@ -2,7 +2,7 @@
 # COMMENTS
 # ================================
 
-# 1. To use this package, input parameters and execute this script (run_pod.R). 
+# 1. To use this package, input parameters and execute this script (run_pod_minute.R). 
 
 # 2. Remember to fill in your ETN credentials in the .Renviron file!
 #    Credentials can be found by visiting ETN (https://www.lifewatch.be/etn/). Click on your user name in the top right-hand side > ETN R access.
