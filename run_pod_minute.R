@@ -42,7 +42,7 @@ quality <- c(1,2,3)
 # ================================
 
 # PIPELINE:
-
+# 
 # 1. DOWNLOAD data. Specifically:
 #     - It downloads only user specified quality data at minute-resoution in 10 day intervals within the given time range
 #     - Download is facilitated by lwdataexplorer::getCpodData()
@@ -67,7 +67,7 @@ quality <- c(1,2,3)
 #     - ./minute_datasets/RData
 # 5. FORMAT dataset to align with IMIS standards. If:
 #     - Only Lo quality is present in dataset: No formatting possible (IMIS only accepts Mod and Hi data)
-#     - Lo + Hi AND/OR + Mod quality is present in dataset: Lo data is removed, columns are renamed, aggregated to Mod+Hi, 
+#     - Lo + Hi AND/OR + Mod quality is present in dataset: Lo data is removed, columns are renamed, aggregated to Mod+Hi,
 #       and formatted to IMIS standard
 #     - Regardless of whether Mod or/and Hi is present (excluding Lo), qualities will be renamed to Mod+Hi (details not necessary)
 # 6. SAVE formatted dataset as a .csv. Paths

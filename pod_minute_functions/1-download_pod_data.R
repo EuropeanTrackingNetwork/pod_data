@@ -2,7 +2,14 @@
 # Unwanted data (species, station and project) is filtered out in the next step
 
 download_pod_data <- function(start_date, stop_date, quality, interval_days = 10, usr, pwd) {
- 
+  # Read credentials from .Renviron
+  usr <- Sys.getenv("userid")
+  pwd <- Sys.getenv("pw")
+  
+  # Check that credentials are available
+  if (usr == "" || pwd == "") {
+    stop("Missing ETN credentials. Check your .Renviron file")}
+  
   # read date intervals
   date_interval <- seq(as.Date(start_date), as.Date(stop_date), by = paste(interval_days, "days"))
   
