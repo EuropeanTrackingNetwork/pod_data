@@ -5,7 +5,10 @@ To access lwdataexplorer datasets, your ETN credentials (userid and password) mu
 
 Full tutorial to configure your credentials: https://inbo.github.io/etn/articles/authentication.html
 
-The script is divided into the following steps: 
+run_pod_minute.R
+
+
+cpod_pipeline.Rmd is divided into the following steps: 
 1. Download and check data per year. Subset data to certain projects or stations and quality control each field.
 2. Standardize minute-resolution datasets for data publication (e.g. to MarineInfo, https://www.vliz.be/en/imis?module=dataset&dasid=8999).
 3. Aggregation of data into hourly resolution.
