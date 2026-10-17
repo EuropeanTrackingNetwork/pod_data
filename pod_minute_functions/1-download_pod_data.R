@@ -2,6 +2,7 @@
 # Unwanted data (species, station and project) is filtered out in the next step
 
 download_pod_data <- function(start_date, stop_date, quality, interval_days = 10, usr, pwd) {
+  
   # Read credentials from .Renviron
   usr <- Sys.getenv("userid")
   pwd <- Sys.getenv("pw")
