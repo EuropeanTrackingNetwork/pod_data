@@ -1,3 +1,6 @@
+# Source .Renviron
+readRenviron(file.path(getwd(), ".Renviron"))
+
 # Load required packages
 library(tidyverse)
 library(lwdataexplorer)
